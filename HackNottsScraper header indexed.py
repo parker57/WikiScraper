@@ -2,16 +2,18 @@ import requests, bs4, wikipedia, re, random
 import numpy as np
 import matplotlib.pyplot as plt
 
-UK_wars = 'https://en.wikipedia.org/wiki/List_of_wars_involving_the_United_Kingdom'
+'''
+    The script is simple, many functions can be used with many links however
+    this example is tailored for scraping the list of wars involving the UK page inparticularly.
+    One problem, is the Great Northern War (first war involving the UK) does not scrape properly
+    despite it being possible using the <a> content as opposed to href (A slower but perhaps more complete process?)
 
-##def wars_from_tbody(tbody):
-##    war_links = []
-##    tr = tbody.findAll('tr')
-##    #could risk first link in every row.
-##    for war in tr:
-##        war_links.append(war.find('a'))
-##    print(len(war_links),'wars found.')
-##    return war_links
+    There were 160 wars in this list, 130 were scrapable using this script, some would have produced
+    dubious results however. There is plenty room for improvement.
+    
+'''
+
+UK_wars = 'https://en.wikipedia.org/wiki/List_of_wars_involving_the_United_Kingdom'
 
 def get_wars_from_list(war_list):
     links = []
@@ -19,14 +21,12 @@ def get_wars_from_list(war_list):
     source.raise_for_status()
     soup = bs4.BeautifulSoup(source.text,'lxml')
     tables = soup.findAll('table')
-    #print(len(tables))
     
-    for table in tables[:-1]: #last table promotes links.
-        print(type(table))
-        #print(table)
+    for table in tables[:-1]: #last table promotes links to related pages, does not display wars.
+        #print(type(table))
         #table_soup = bs4.BeautifulSoup(table.text,'lxml')
         trs = table.findAll('tr')
-        print(type(trs))
+        #print(type(trs))
         for tr in trs:
             row = tr.find("td")
             if isinstance(row, bs4.element.Tag) or isinstance(row, bs4.element.ResultSet):
@@ -92,19 +92,11 @@ def get_soup_from_href(pg):
     source = requests.get(l)
     source.raise_for_status()
     
-##    search = wikipedia.search(pg)[0]
-##    print(search)
-##    page = wikipedia.page(search)
     page_soup = bs4.BeautifulSoup(source.text, 'lxml')
 
     info_box = page_soup.find('table',class_='infobox vevent')
 
     rows = info_box.findAll('tr')
-
-    ##for row in rows:
-    ##    data = row.find_all('td')
-    ##    r = [i.text for i in data]
-    ##    print(r)
 
     info_headers = info_box.findAll('th')
 
@@ -114,8 +106,6 @@ def get_soup_from_href(pg):
             belligerent_row = belligerent.find_next_sibling('tr')
             bel_lists = belligerent_row.findAll('td')
             return bel_lists
-
-    #if code gets to here, no belligerents, not a scrapably war page.
         
 def hasNumbers(string): #It seems no nations have numbers in their names, this is typically indicative of citations or dates.
     return bool(re.search(r'\d', string))
@@ -133,20 +123,6 @@ def faction_split(faction):
 
 
 
-##test_cases = ['world war one','hundred days','pontiac\'s rebellion','Ottoman-Persian War','Taiping_Rebellion','Pahang Civil War']
-##
-##pg = random.choice(test_cases)
-##victor,vanquished = get_soup(pg)
-##vi_nations = victor.findAll('a')
-##va_nations = vanquished.findAll('a')
-##
-##victor_list = faction_split(vi_nations)
-##vanquished_list = faction_split(va_nations)
-##
-##print(victor_list)
-##print('-'*20)
-##print(vanquished_list)
-
 wars_UK = get_wars_from_list(UK_wars)
 synonyms = ['Kingdom of Great Britain','Royal Air Force','British','Great Britain','United Kingdom','British Empire','Royal Navy','British East India Company']
 
@@ -155,9 +131,7 @@ win_lose['won'] = 0
 win_lose['lost'] = 0
 
 
-#plt.show()
-#fig.savefig('Frame%03d.png' %n)
-#str(wars_UK.index(war))
+not_parsed = []
 files = 0
 for war in wars_UK:
 
@@ -173,15 +147,10 @@ for war in wars_UK:
             win_lose['won'] += 1
         if(len([b for b in synonyms if b in vanquished_list])>0):
             win_lose['lost'] += 1
-
-##        if len([b in synonyms for b in victor_list])>0:
-##            win_lose['won'] += 1
-##        if len([b in synonyms for b in vanquished_list])>0:
-##            win_lose['lost'] += 1
         
         print(win_lose)
         
-        # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+        # Pie chart,
         labels = 'Victories' , 'Defeats'
         sizes = [win_lose['won'], win_lose['lost']]
         explode = (0, 0)
@@ -196,9 +165,6 @@ for war in wars_UK:
         plt.title(war)
         fig.savefig(f_name)
         
-
-
-        
         print('...',war,'\n')
         print(victor_list)
         print('-'*20)
@@ -207,30 +173,23 @@ for war in wars_UK:
         
     except ValueError:
         print('War does not have 2 sides.')
+        not_parsed.append(war)
     except AttributeError:
         print('No infobox to scrape for this skirmish.')
+        not_parsed.append(war)
     except wikipedia.DisambiguationError:
         print('War search to ambiguous, use href.')
+        not_parsed.append(war)
     except TypeError:
         print('Unscrapable Box')
+        not_parsed.append(war)
     except:
         print('Unexpected Error')
+        not_parsed.append(war)
         
 
     print('\n'*2)
 
-#MatplotLib
-##x = np.linspace(0, 10, sum(win_lose.values())
-##y = np.sin(x)
-##
-##fig, ax = plt.subplots()
-##line, = ax.plot(x, y, color='k')
-##
-##for n in range(len(x)):
-##    line.set_data(x[:n], y[:n])
-##    ax.axis([0, 10, 0, 1])
-##    fig.canvas.draw()
-##    fig.savefig('Frame%03d.png' %n)
 
 
 
